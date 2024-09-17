@@ -1,0 +1,97 @@
+syntax = "proto2";
+
+package proc_macro_server.api;
+
+message MacroPluginMetadata {
+    required CfgSet cfg_set = 1;
+    repeated string declared_derives = 2;
+    repeated string allowed_features = 3;
+    required Edition edition = 4;
+}
+
+message Cfg {
+    required string key = 1;
+    optional string value = 2;
+}
+message CfgSet {
+    repeated Cfg cfgs = 1;
+}
+
+enum Edition {
+    V2023_01 = 0;
+    V2023_10 = 1;
+    V2023_11 = 2;
+    V2024_07 = 3;
+}
+
+message ExpandParams {
+    required string code = 1;
+    required MacroPluginMetadata metadata = 2;
+}
+
+message ExpandInlineParams {
+    required string code = 1;
+    required MacroPluginMetadata metadata = 2;
+}
+
+message ExpandInlineResponse {
+    optional PluginGeneratedFile code = 1;
+    repeated PluginDiagnostic diagnostics = 2;
+}
+
+message ExpandResponse {
+    optional PluginGeneratedFile code = 1;
+    repeated PluginDiagnostic diagnostics = 2;
+    required bool remove_original_item = 3;
+}
+
+message PluginDiagnostic {
+    required string message = 1;
+    required Severity severity = 2;
+    required uint32 stable_ptr = 3;
+}
+
+enum Severity {
+    Error = 0;
+    Warning = 1;
+}
+
+message PluginGeneratedFile {
+    required string name = 1;
+    required string content = 2;
+    repeated CodeMapping code_mappings = 3;
+}
+
+message CodeMapping {
+    required TextSpan span = 1;
+    required CodeOrigin origin = 2;
+}
+
+message CodeOrigin {
+    oneof origin {
+        uint32 start = 1;
+        TextSpan span = 2;
+    }
+}
+
+message TextSpan {
+    required uint32 start = 1;
+    required uint32 end = 2;
+}
+
+message DefinedInlineMacrosResponse {
+    repeated string macros = 1;
+}
+
+message DefinedAttributesResponse {
+    repeated string attributes = 1;
+}
+
+message Empty { }
+
+service ProcMacros {
+    rpc Expand (ExpandParams) returns (ExpandResponse);
+    rpc ExpandInline (ExpandInlineParams) returns (ExpandInlineResponse);
+    rpc DefinedInlineMacros (Empty) returns (DefinedInlineMacrosResponse);
+    rpc DefinedAttributes (Empty) returns (DefinedAttributesResponse);
+}

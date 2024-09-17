@@ -8,6 +8,10 @@ use tracing::{error, warn};
 
 use crate::env_config;
 use crate::server::notifier::Notifier;
+use proc_macro_server_api::tonic::transport::Uri;
+use serde_json::Value;
+use std::io::{BufRead, BufReader};
+use std::process::{Command, Stdio};
 
 pub const SCARB_TOML: &str = "Scarb.toml";
 
@@ -132,6 +136,51 @@ impl ScarbToolchain {
         }
 
         result
+    }
+
+    /// Spawns proc macro server and returns it's address.
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn proc_macro_server(&self) -> Option<Uri> {
+        let scarb_path = self.discover()?;
+
+        let command = Command::new(scarb_path)
+            .args(["--json", "proc-macro-server"])
+            .stdout(Stdio::piped())
+            .spawn()
+            .ok()?;
+
+        let stdout = command.stdout?;
+
+        let lines = BufReader::new(stdout).lines();
+
+        for line in lines {
+            match line {
+                Ok(line) => {
+                    if !line.starts_with("{\"server_address") {
+                        continue;
+                    }
+
+                    let value: Option<Value> = serde_json::from_str(&line).ok();
+
+                    if let Some(value) = value {
+                        let server_address = value
+                            .get("server_address")
+                            .and_then(|v| v.as_str().map(ToString::to_string));
+
+                        if let Some(server_address) = server_address {
+                            let server_address = format!("http://{server_address}");
+
+                            if let Ok(server_address) = server_address.parse() {
+                                return Some(server_address);
+                            }
+                        }
+                    }
+                }
+                Err(_) => return None,
+            }
+        }
+
+        None
     }
 }
 

@@ -1,0 +1,34 @@
+[package]
+name = "proc-macro-server-api"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license-file.workspace = true
+
+[features]
+build-server = []
+build-client = []
+
+[dependencies]
+cairo-lang-parser = { path = "../../cairo-lang-parser" }
+cairo-lang-syntax = { path = "../../cairo-lang-syntax" }
+cairo-lang-filesystem = { path = "../../cairo-lang-filesystem" }
+cairo-lang-lowering = { path = "../../cairo-lang-lowering" }
+cairo-lang-semantic = { path = "../../cairo-lang-semantic" }
+cairo-lang-starknet = { path = "../../cairo-lang-starknet" }
+cairo-lang-test-plugin = { path = "../../cairo-lang-test-plugin" }
+cairo-lang-defs = { path = "../../cairo-lang-defs" }
+cairo-lang-doc = { path = "../../cairo-lang-doc" }
+cairo-lang-utils = { path = "../../cairo-lang-utils" }
+salsa.workspace = true
+bytes = "1.7.1"
+prost = "0.13"
+prost-types = "0.13"
+tokio = "1.40.0"
+tokio-stream = "0.1.16"
+tonic = "0.12.2"
+tonic-reflection = "0.12.2"
+hyper = "1.4.1"
+
+[build-dependencies]
+tonic-build = "0.12.2"

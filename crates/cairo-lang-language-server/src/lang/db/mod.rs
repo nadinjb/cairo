@@ -18,7 +18,9 @@ use cairo_lang_utils::Upcast;
 
 pub use self::semantic::*;
 pub use self::syntax::*;
+use super::macros::proc_macros_plugin_suite;
 use crate::Tricks;
+use proc_macro_server_api::tonic::transport::Uri;
 
 mod semantic;
 mod syntax;
@@ -39,7 +41,7 @@ pub struct AnalysisDatabase {
 
 impl AnalysisDatabase {
     /// Creates a new instance of the database.
-    pub fn new(tricks: &Tricks) -> Self {
+    pub fn new(tricks: &Tricks, proc_macro_server_url: Option<Uri>) -> Self {
         let mut db = Self { storage: Default::default() };
 
         init_files_group(&mut db);
@@ -47,7 +49,7 @@ impl AnalysisDatabase {
 
         db.set_cfg_set(Self::initial_cfg_set().into());
 
-        let plugin_suite =
+        let mut plugin_suite =
             [get_default_plugin_suite(), starknet_plugin_suite(), test_plugin_suite()]
                 .into_iter()
                 .chain(tricks.extra_plugin_suites.iter().flat_map(|f| f()))
@@ -55,6 +57,11 @@ impl AnalysisDatabase {
                     acc.add(suite);
                     acc
                 });
+
+        if let Some(proc_macro_server_url) = proc_macro_server_url {
+            plugin_suite.add(proc_macros_plugin_suite(proc_macro_server_url));
+        }
+
         db.apply_plugin_suite(plugin_suite);
 
         db

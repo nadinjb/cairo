@@ -11,6 +11,7 @@ use tower_lsp::lsp_types::{ClientCapabilities, Url};
 
 use crate::config::Config;
 use crate::lang::db::AnalysisDatabase;
+use proc_macro_server_api::tonic::transport::Uri;
 
 /// State of Language server.
 pub struct State {
@@ -19,6 +20,7 @@ pub struct State {
     pub file_diagnostics: Owned<HashMap<Url, FileDiagnostics>>,
     pub config: Owned<Config>,
     pub client_capabilities: Owned<ClientCapabilities>,
+    pub proc_macro_server_url: Owned<Option<Uri>>,
 }
 
 #[derive(Clone, Default, PartialEq, Eq)]
@@ -36,13 +38,14 @@ impl FileDiagnostics {
 impl std::panic::UnwindSafe for FileDiagnostics {}
 
 impl State {
-    pub fn new(db: AnalysisDatabase) -> Self {
+    pub fn new(db: AnalysisDatabase, proc_macro_server_url: Option<Uri>) -> Self {
         Self {
             db,
             open_files: Default::default(),
             file_diagnostics: Default::default(),
             config: Default::default(),
             client_capabilities: Default::default(),
+            proc_macro_server_url: Owned::new(proc_macro_server_url.into()),
         }
     }
 
@@ -52,6 +55,7 @@ impl State {
             open_files: self.open_files.snapshot(),
             config: self.config.snapshot(),
             client_capabilities: self.client_capabilities.snapshot(),
+            proc_macro_server_url: self.proc_macro_server_url.snapshot(),
         }
     }
 }
@@ -62,6 +66,7 @@ pub struct StateSnapshot {
     pub open_files: Snapshot<HashSet<Url>>,
     pub config: Snapshot<Config>,
     pub client_capabilities: Snapshot<ClientCapabilities>,
+    pub proc_macro_server_url: Snapshot<Option<Uri>>,
 }
 
 impl std::panic::UnwindSafe for StateSnapshot {}

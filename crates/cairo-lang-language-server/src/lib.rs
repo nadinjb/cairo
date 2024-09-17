@@ -279,15 +279,17 @@ impl Backend {
     }
 
     fn new(client: Client, tricks: Tricks) -> Self {
-        let db = AnalysisDatabase::new(&tricks);
         let notifier = Notifier::new(&client);
         let scarb_toolchain = ScarbToolchain::new(&notifier);
+        let proc_macro_server_url = scarb_toolchain.proc_macro_server();
+        let db = AnalysisDatabase::new(&tricks, proc_macro_server_url.clone());
+
         Self {
             client,
             tricks,
             refresh_lock: Default::default(),
             refresh_waiters_semaphore: Semaphore::new(2),
-            state_mutex: State::new(db).into(),
+            state_mutex: State::new(db, proc_macro_server_url).into(),
             scarb_toolchain,
             last_replace: tokio::sync::Mutex::new(SystemTime::now()),
             db_replace_interval: env_config::db_replace_interval(),
@@ -603,7 +605,8 @@ impl Backend {
                 let tricks = self.tricks.clone();
 
                 move || {
-                    let mut new_db = AnalysisDatabase::new(&tricks);
+                    let mut new_db =
+                        AnalysisDatabase::new(&tricks, (*state.proc_macro_server_url).clone());
                     ensure_exists_in_db(&mut new_db, &state.db, open_files.iter().cloned());
                     new_db
                 }
